@@ -1,4 +1,4 @@
-package videocall;
+package video;
 
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
@@ -24,8 +24,13 @@ import java.awt.color.ColorSpace;
 import java.awt.image.ColorConvertOp;
 import java.awt.image.ImageFilter;
 import java.awt.image.WritableRaster;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.DefaultListModel;
 
-public class Client extends javax.swing.JFrame {
+public class Client extends javax.swing.JFrame implements Runnable{
 
     //cờ điểu khiển chương trình
     protected boolean controling = true;
@@ -35,12 +40,17 @@ public class Client extends javax.swing.JFrame {
     protected boolean stopping = false;
     //cờ sáng tối
     protected float percent = 1f;
-
+    
+    Socket socket;
+    DataOutputStream output;
+    DataInputStream input;
+    DefaultListModel model; 
     /**
      * Creates new form Client
      */
     public Client() {
         initComponents();
+        model = new DefaultListModel();
 //        Thread thread = new Thread(new VideoRecord());
 //        thread.start();
 //        VideoRecord thread = new VideoRecord();
@@ -61,6 +71,11 @@ public class Client extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         connect = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        lsHistory = new javax.swing.JList<>();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        txtMessage = new javax.swing.JTextArea();
+        btnSend = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Client");
@@ -74,6 +89,19 @@ public class Client extends javax.swing.JFrame {
             }
         });
 
+        jScrollPane1.setViewportView(lsHistory);
+
+        txtMessage.setColumns(20);
+        txtMessage.setRows(2);
+        jScrollPane2.setViewportView(txtMessage);
+
+        btnSend.setText("Gui");
+        btnSend.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSendActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -82,43 +110,76 @@ public class Client extends javax.swing.JFrame {
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 320, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(61, 61, 61)
                 .addComponent(connect)
-                .addGap(0, 69, Short.MAX_VALUE))
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(67, 67, 67)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 613, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 476, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(btnSend, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(79, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 171, Short.MAX_VALUE))
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(86, 86, 86)
-                .addComponent(connect)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btnSend, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(86, 86, 86)
+                                .addComponent(connect)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 191, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(49, 49, 49)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(21, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void connectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectActionPerformed
+        try {
+            model.addElement("Client is connecting...");
+            lsHistory.setModel(model);
+            socket = new Socket("localhost",8888);
+            model.addElement("Client is connected");
+            lsHistory.setModel(model);
+            Thread t = new Thread(Client.this);
+            t.start();
+        } catch (IOException ex) {
+           
+        }
         VideoRecord thread = new VideoRecord();
         VideoControl thread2 = new VideoControl();
         thread.start();
         thread2.start();
     }//GEN-LAST:event_connectActionPerformed
+
+    private void btnSendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSendActionPerformed
+        // TODO add your handling code here:
+        try {
+            output = new DataOutputStream(socket.getOutputStream());
+            output.writeUTF(txtMessage.getText());
+            output.flush();
+        } catch (Exception e) {
+        }
+    }//GEN-LAST:event_btnSendActionPerformed
 
     /**
      * @param args the command line arguments
@@ -153,6 +214,24 @@ public class Client extends javax.swing.JFrame {
                 new Client().setVisible(true);
             }
         });
+    }
+
+    @Override
+    public void run() {
+        try {
+            input = new DataInputStream(socket.getInputStream());
+            while(true){
+                if(socket!= null){
+                    model.addElement("Server : "+ input.readUTF());
+                    lsHistory.setModel(model);
+                }
+                Thread.sleep(1000);
+            }
+            
+        } catch (IOException ex) {
+        } catch (InterruptedException ex) {
+        }
+        
     }
 
     //ghi hình webcam và gửi cho server
@@ -297,8 +376,13 @@ public class Client extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnSend;
     private javax.swing.JButton connect;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JList<String> lsHistory;
+    private javax.swing.JTextArea txtMessage;
     // End of variables declaration//GEN-END:variables
 }
